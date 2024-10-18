@@ -39,6 +39,23 @@ class Lexer {
               tokens.push(this.getInteger());
           } else if (/[a-zA-Z]/.test(this.currentChar)) {
               tokens.push(this.getIdentifierOrKeyword());
+            } else if (this.currentChar === '(') {
+              tokens.push({ type: 'LPAREN', value: '(' });
+              this.advance();
+          } else if (this.currentChar === ')') {
+              tokens.push({ type: 'RPAREN', value: ')' });
+              this.advance();
+          } else if (this.currentChar === ',') {
+              tokens.push({ type: 'COMMA', value: ',' });
+              this.advance();
+          } else if ('+-*/^'.includes(this.currentChar)) {
+              tokens.push(this.getOperator());
+          } else if ('=!<'.includes(this.currentChar)) {
+              tokens.push(this.getComparison());
+          } else if (this.currentChar === '_') {
+              tokens.push(this.getSubscript());
+          } else if (this.currentChar === '=' || this.currentChar === '-') {
+              tokens.push(this.getArrow());
           } else {
               this.advance();
           }
@@ -140,20 +157,68 @@ class Lexer {
           result += this.currentChar;
           this.advance();
       }
-      if (['function', 'while', 'break', 'continue'].includes(result)) {
+      if (['function', 'if', 'else', 'then', 'while', 'break', 'continue', 'return'].includes(result)) {
           return { type: 'KEYWORD', value: result };
       }
       return { type: 'IDENTIFIER', value: result };
+  }
+
+  getOperator() {
+    const operators = {
+        '+': 'PLUS',
+        '-': 'MINUS',
+        '*': 'MULTIPLY',
+        '/': 'DIVIDE',
+        '^': 'POWER'
+    };
+    const operatorValue = this.currentChar;
+    this.advance();
+    return { type: operators[operatorValue], value: operatorValue };
+  }
+
+  getComparison() {
+      let result = this.currentChar;
+      if (this.peek() === '=' || (result === '!' && this.peek() === '=')) {
+          this.advance();
+          result += this.currentChar;
+      }
+      this.advance();
+      return { type: 'COMPARISON', value: result };
+  }
+
+  getSubscript() {
+      this.advance(); // Skip the underscore
+      let result = '';
+      while (this.currentChar !== null && /[a-zA-Z0-9]/.test(this.currentChar)) {
+          result += this.currentChar;
+          this.advance();
+      }
+      return { type: 'SUBSCRIPT', value: result };
+  }
+
+  getArrow() {
+      let result = this.currentChar;
+      if (this.peek() === '>' || (result === '-' && this.peek() === '>')) {
+          this.advance();
+          result += this.currentChar;
+      }
+      this.advance();
+      if (result === '=>' || result === '->') {
+          return { type: 'ARROW', value: result };
+      }
+      return null;
   }
 }
 
 // Test code example
 let code = `
-function example()
-    if true 
+function example(a, b)
+    if a <= b then 
         return 'Hello, world!'
 `;
 
 const lexer = new Lexer(code);
 const tokens = lexer.tokenize();
-console.log(tokens);
+
+
+console.log(tokens)
