@@ -48,14 +48,14 @@ class Lexer {
           } else if (this.currentChar === ',') {
               tokens.push({ type: 'COMMA', value: ',' });
               this.advance();
+          } else if (this.currentChar === '=' || this.currentChar === '-') {
+              tokens.push(this.getArrow());
           } else if ('+-*/^'.includes(this.currentChar)) {
               tokens.push(this.getOperator());
           } else if ('=!<'.includes(this.currentChar)) {
               tokens.push(this.getComparison());
           } else if (this.currentChar === '_') {
               tokens.push(this.getSubscript());
-          } else if (this.currentChar === '=' || this.currentChar === '-') {
-              tokens.push(this.getArrow());
           } else {
               this.advance();
           }
@@ -215,10 +215,65 @@ let code = `
 function example(a, b)
     if a <= b then 
         return 'Hello, world!'
+
+a_i => a_1 + b_i
 `;
 
 const lexer = new Lexer(code);
 const tokens = lexer.tokenize();
 
+let output = `$$
+\\begin{align}
+`;
 
-console.log(tokens)
+for (let i = 0; i < tokens.length; i += 1) {
+  let t = tokens[i]
+  switch (t.type) {
+    case 'NEWLINE':
+      output += "\n& "; break;
+    case 'INDENT':
+      output += "\\qquad".repeat(t.value); break;
+    case 'IDENTIFIER': {
+      if (tokens[i + 1].type === '(') {
+        output += `\\mathrm{${t.value}}`;
+      } else {
+        output += `\\mathit{${t.value}}`;
+      }
+      break;
+    }
+    case 'KEYWORD':
+      output += `\\mathbf{${t.value}}\\space `; break;
+    case 'LPAREN': case 'COMMA': case 'RPAREN':
+      output += t.value + " "; break;
+    case 'SUBSCRIPT':
+      output += `_{${t.value}}`; break;
+    case 'ARROW': {
+      if (t.value === '=>') output += '\\Rightarrow ';
+      else if (t.value === '->') output += '\\rightarrow ';
+      break;
+    }
+    case 'PLUS': case 'MINUS':
+      output += t.value; break;
+    case 'MULTIPLY':
+      output += '\\times '; break;
+    case 'DIVIDE':
+      output += '\\div'; break;
+    case 'STRING':
+      output += `"${t.value}"`; break;
+    case 'COMPARISON': {
+      switch (t.value) {
+        case '<=': output += '\\leq'; break;
+        case '>=': output += '\\geq'; break;
+        case '!=': output += '\\neq'; break;
+        case '=': output += ' = '; break;
+      }
+      break;
+    }
+    case 'COMMENT':
+      output += `\\color{grey}{${t.value}}`; break;
+  }
+}
+
+output += "\n\\end{align}\n$$";
+
+console.log(output)
