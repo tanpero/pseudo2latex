@@ -230,14 +230,17 @@ for (let i = 0; i < tokens.length; i += 1) {
   let t = tokens[i]
   switch (t.type) {
     case 'NEWLINE':
-      output += "\n& "; break;
+      output += "\\\\\n& "; break;
     case 'INDENT':
       output += "\\qquad".repeat(t.value); break;
     case 'IDENTIFIER': {
-      if (tokens[i + 1].type === '(') {
+      if (tokens[i + 1].type === 'LPAREN') {
         output += `\\mathrm{${t.value}}`;
       } else {
         output += `\\mathit{${t.value}}`;
+        if (tokens[i + 1].type != 'SUBSCRIPT') {
+          output += '\\space';
+        }
       }
       break;
     }
@@ -259,7 +262,7 @@ for (let i = 0; i < tokens.length; i += 1) {
     case 'DIVIDE':
       output += '\\div'; break;
     case 'STRING':
-      output += `"${t.value}"`; break;
+      output += `\\mathtt{''${t.value}''}`; break;
     case 'COMPARISON': {
       switch (t.value) {
         case '<=': output += '\\leq'; break;
