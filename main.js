@@ -3,6 +3,7 @@ class Lexer {
       this.input = input;
       this.position = 0;
       this.currentChar = this.input[this.position];
+      this.indentStack = [0]; // 用于跟踪缩进级别的堆栈，初始为0
   }
 
   advance() {
@@ -22,12 +23,16 @@ class Lexer {
   tokenize() {
       let tokens = [];
       while (this.currentChar !== null) {
-          if (this.currentChar.trim() === '') {
+          if (this.currentChar === '\n') {
+              tokens.push({ type: 'NEWLINE', value: '\n' });
               this.advance();
+              tokens = tokens.concat(this.handleIndentation());
+          } else if (this.currentChar === ' ' || this.currentChar === '\t') {
+              this.advance(); // Skip whitespace at beginning of lines
           } else if (this.currentChar === '/' && this.peek() === '/') {
-              this.skipSingleLineComment();
+              tokens.push(this.getSingleLineComment());
           } else if (this.currentChar === '/' && this.peek() === '*') {
-              this.skipMultiLineComment();
+              tokens.push(this.getMultiLineComment());
           } else if (this.currentChar === '"' || this.currentChar === "'") {
               tokens.push(this.getString());
           } else if (/\d/.test(this.currentChar)) {
@@ -38,25 +43,67 @@ class Lexer {
               this.advance();
           }
       }
+      tokens = tokens.concat(this.closeIndents()); // 关闭剩余的缩进
       return tokens;
   }
 
-  skipSingleLineComment() {
-      while (this.currentChar !== '\n' && this.currentChar !== null) {
+  handleIndentation() {
+      let tokens = [];
+      let numSpaces = 0;
+      while (this.currentChar === ' ') {
+          numSpaces++;
           this.advance();
       }
-      this.advance(); // Skip the newline character
+      
+      const spacePerIndent = 4;
+      const currentIndentLevel = numSpaces / spacePerIndent;
+      const lastIndentLevel = this.indentStack[this.indentStack.length - 1];
+
+      if (currentIndentLevel > lastIndentLevel) {
+          this.indentStack.push(currentIndentLevel);
+          tokens.push({ type: 'INDENT', value: currentIndentLevel });
+      } else if (currentIndentLevel < lastIndentLevel) {
+          while (currentIndentLevel < this.indentStack[this.indentStack.length - 1]) {
+              this.indentStack.pop();
+              tokens.push({ type: 'DEDENT', value: this.indentStack[this.indentStack.length - 1] });
+          }
+      }
+
+      return tokens;
   }
 
-  skipMultiLineComment() {
-      this.advance(); // Skip the initial '*'
-      this.advance();
+  closeIndents() {
+      let tokens = [];
+      while (this.indentStack.length > 1) {
+          this.indentStack.pop();
+          tokens.push({ type: 'DEDENT', value: this.indentStack[this.indentStack.length - 1] });
+      }
+      return tokens;
+  }
+
+  getSingleLineComment() {
+      let comment = '';
+      this.advance(); // skip '/'
+      this.advance(); // skip second '/'
+      while (this.currentChar !== '\n' && this.currentChar !== null) {
+          comment += this.currentChar;
+          this.advance();
+      }
+      return { type: 'COMMENT', value: comment };
+  }
+
+  getMultiLineComment() {
+      let comment = '';
+      this.advance(); // skip '/'
+      this.advance(); // skip '*'
       while (this.currentChar !== null && !(this.currentChar === '*' && this.peek() === '/')) {
+          comment += this.currentChar;
           this.advance();
       }
       if (this.currentChar === '*' && this.peek() === '/') {
           this.advance(); // Skip the '*'
           this.advance(); // Skip the '/'
+          return { type: 'COMMENT', value: comment };
       } else {
           this.error("Unterminated comment");
       }
@@ -100,22 +147,11 @@ class Lexer {
   }
 }
 
-
-
 // Test code example
 let code = `
-function test(a_1, B_n, add_2)
-  return a_1 + B_n + add_2
-
-add_1 = 1
-B_n = 2
-result -> test(add_1, B_n, 3)
-result => add_1a a^2
-
-while a != b then
-  a = a + 1
-  if a >= 10 then break
-  if a % 2 != 0 then continue
+function example()
+    if true 
+        return 'Hello, world!'
 `;
 
 const lexer = new Lexer(code);
