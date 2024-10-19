@@ -99,7 +99,7 @@ class Lexer {
   }
 
   getSingleLineComment() {
-      let comment = '';
+      let comment = '//\\space';
       this.advance(); // skip '/'
       this.advance(); // skip second '/'
       while (this.currentChar !== '\n' && this.currentChar !== null) {
@@ -110,7 +110,7 @@ class Lexer {
   }
 
   getMultiLineComment() {
-      let comment = '';
+      let comment = '/\\negthinspace';
       this.advance(); // skip '/'
       this.advance(); // skip '*'
       while (this.currentChar !== null && !(this.currentChar === '*' && this.peek() === '/')) {
@@ -120,7 +120,7 @@ class Lexer {
       if (this.currentChar === '*' && this.peek() === '/') {
           this.advance(); // Skip the '*'
           this.advance(); // Skip the '/'
-          return { type: 'COMMENT', value: comment };
+          return { type: 'COMMENT', value: comment + '*\\negthinspace/' };
       } else {
           this.error("Unterminated comment");
       }
@@ -212,6 +212,10 @@ class Lexer {
 
 // Test code example
 let code = `
+/*
+ * Hello world
+ */
+// Hello world
 function example(a, b)
     if a <= b then 
         return 'Hello, world!'
