@@ -262,7 +262,7 @@ for (let i = 0; i < tokens.length; i += 1) {
     case 'DIVIDE':
       output += '\\div'; break;
     case 'STRING':
-      output += `\\mathtt{''${t.value}''}`; break;
+      output += `\\text{\`\`}\\:\\negthinspace\\mathtt{${t.value}}\\:\\negthinspace\\text{''}`; break;
     case 'COMPARISON': {
       switch (t.value) {
         case '<=': output += '\\leq'; break;
